@@ -56,7 +56,21 @@ const KnowledgeEditor = () => {
     try {
       const response = await apiService.getTenant();
       if (response.success && response.data?.tenant) {
-        setTenant(response.data.tenant);
+        const t = response.data.tenant;
+        setTenant(t);
+
+        // In CREATE mode, auto-populate form fields from Bot Identity data
+        if (!id) {
+          setFormData(prev => ({
+            ...prev,
+            title: prev.title || t.platformName || '',
+            content: {
+              ...prev.content,
+              platformName: prev.content.platformName || t.platformName || '',
+              introduction: prev.content.introduction || t.platformDescription || ''
+            }
+          }));
+        }
       }
     } catch (error) {
       console.error('Failed to fetch tenant data:', error);

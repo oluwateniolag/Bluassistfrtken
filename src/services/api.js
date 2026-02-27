@@ -228,6 +228,14 @@ class ApiService {
     });
   }
 
+  // Bot Identity endpoints
+  async updateBotIdentity(data) {
+    return this.request('/tenants/bot-identity', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Subscription endpoints
   async getSubscription() {
     return this.request('/tenants/subscription');

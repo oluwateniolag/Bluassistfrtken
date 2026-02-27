@@ -105,6 +105,8 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
         // Fallback: navigate directly if needed
         navigate('/knowledge');
       }
+    } else if (subItem === 'Bot Identity') {
+      navigate('/webchat/bot-identity');
     } else if (subItem === 'API Key Management') {
       navigate('/settings/api-keys');
     } else if (subItem === 'Subscription') {

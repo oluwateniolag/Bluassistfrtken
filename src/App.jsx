@@ -10,6 +10,7 @@ import KnowledgeEditor from './pages/KnowledgeEditor';
 import KnowledgeView from './pages/KnowledgeView';
 import Settings from './pages/Settings';
 import ApiDocs from './pages/ApiDocs';
+import BotIdentity from './pages/BotIdentity';
 import './App.css';
 
 function App() {
@@ -103,6 +104,9 @@ function App() {
         } />
         <Route path="/api-docs" element={
           isAuthenticated ? <ApiDocs /> : <Navigate to="/" replace />
+        } />
+        <Route path="/webchat/bot-identity" element={
+          isAuthenticated ? <BotIdentity /> : <Navigate to="/" replace />
         } />
         <Route path="/" element={<LandingPage 
           onLoginClick={handleLoginClick}
