@@ -4,6 +4,25 @@ import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import './Onboarding.css';
 
+const COUNTRY_CODES = [
+  { code: '+234', label: '+234 NG' },
+  { code: '+1', label: '+1 US' },
+  { code: '+44', label: '+44 GB' },
+  { code: '+27', label: '+27 ZA' },
+  { code: '+233', label: '+233 GH' },
+  { code: '+254', label: '+254 KE' },
+  { code: '+255', label: '+255 TZ' },
+  { code: '+256', label: '+256 UG' },
+  { code: '+49', label: '+49 DE' },
+  { code: '+33', label: '+33 FR' },
+  { code: '+91', label: '+91 IN' },
+  { code: '+61', label: '+61 AU' },
+  { code: '+971', label: '+971 AE' },
+  { code: '+966', label: '+966 SA' },
+  { code: '+55', label: '+55 BR' },
+  { code: '+52', label: '+52 MX' },
+];
+
 const Onboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -15,6 +34,7 @@ const Onboarding = () => {
   const [success, setSuccess] = useState('');
 
   // Form data
+  const [countryCode, setCountryCode] = useState('+234');
   const [companyData, setCompanyData] = useState({
     companyName: '',
     website: '',
@@ -24,7 +44,7 @@ const Onboarding = () => {
   const [chatbotData, setChatbotData] = useState({
     chatbotName: 'BluAssist',
     welcomeMessage: 'Hello! How can I help you today?',
-    primaryColor: 'rgba(80,159,239,1)',
+    primaryColor: '#509fef',
     secondaryColor: '#0059b3',
   });
 
@@ -41,7 +61,7 @@ const Onboarding = () => {
           navigate('/dashboard');
         } else {
           const step = response.data.onboardingStep || 1;
-          setCurrentStep(step);
+          setCurrentStep(step === 1 ? 1 : step + 1);
         }
       }
     } catch (error) {
@@ -56,7 +76,10 @@ const Onboarding = () => {
     setSuccess('');
 
     try {
-      const response = await apiService.updateCompanyDetails(companyData);
+      const response = await apiService.updateCompanyDetails({
+        ...companyData,
+        phone: companyData.phone ? `${countryCode} ${companyData.phone}` : '',
+      });
       if (response.success) {
         setSuccess('Company details saved successfully!');
         setTimeout(() => {
@@ -180,24 +203,38 @@ const Onboarding = () => {
                 <label htmlFor="website">Website</label>
                 <input
                   id="website"
-                  type="url"
+                  type="text"
                   value={companyData.website}
                   onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
-                  placeholder="https://www.example.com"
+                  placeholder="www.example.com or https://example.com"
                   disabled={saving}
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="phone">Phone Number</label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={companyData.phone}
-                  onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
-                  placeholder="+1 (555) 123-4567"
-                  disabled={saving}
-                />
+                <label htmlFor="phone">Phone Number <span style={{ color: '#ef4444' }}>*</span></label>
+                <div className="phone-input-wrapper">
+                  <select
+                    className="phone-country-select"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    disabled={saving}
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    id="phone"
+                    type="tel"
+                    className="phone-number-input"
+                    value={companyData.phone}
+                    onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
+                    placeholder="8012345678"
+                    required
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
               <div className="form-actions">

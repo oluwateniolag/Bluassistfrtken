@@ -27,7 +27,7 @@ const LoginModal = ({ onClose, onSwitchToRegister, onSuccess }) => {
       const result = await login(email, password);
       if (result.success) {
         if (onSuccess) {
-          onSuccess();
+          onSuccess(result.data);
         } else {
           onClose();
         }

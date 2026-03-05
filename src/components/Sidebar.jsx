@@ -167,7 +167,7 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
       <div className="sidebar-header">
         <div className="workspace-info">
           <a href="/dashboard" className="sidebar-logo-link">
-            <img src="/logo.png" alt="Bluassist" className="sidebar-logo-img" />
+            <img src="/blusalt-icon.svg" alt="Bluassist" className="sidebar-logo-img" />
           </a>
           {!collapsed && (
             <>

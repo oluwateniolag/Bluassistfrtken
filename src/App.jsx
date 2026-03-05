@@ -35,18 +35,14 @@ function App() {
     setShowRegisterModal(false);
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (loginData) => {
     handleCloseModals();
-    // Check onboarding status and redirect accordingly
-    setTimeout(() => {
-      // Refresh user data first
-      const onboardingCompleted = user?.tenant?.onboardingCompleted;
-      if (onboardingCompleted) {
-        navigate('/dashboard');
-      } else {
-        navigate('/onboarding');
-      }
-    }, 100);
+    const onboardingCompleted = loginData?.user?.tenant?.onboardingCompleted;
+    if (onboardingCompleted) {
+      navigate('/dashboard');
+    } else {
+      navigate('/onboarding');
+    }
   };
 
   const handleRegisterSuccess = () => {
@@ -144,7 +140,7 @@ function LandingPage({ onLoginClick, onRegisterClick, isAuthenticated, user, log
         <div className="nav-container">
           <div className="logo">
             <a href="/" className="logo-link">
-              <img src="/logo.png" alt="Bluassist" className="logo-img" />
+              <img src="/blusalt-icon.svg" alt="Bluassist" className="logo-img" />
               <span className="logo-text">Bluassist</span>
             </a>
           </div>
@@ -223,12 +219,15 @@ function LandingPage({ onLoginClick, onRegisterClick, isAuthenticated, user, log
             <div className="chatbot-preview">
               <div className="chat-window">
                 <div className="chat-header">
+                  <div className="chat-header-info">
+                    <img src="/blusalt-icon.svg" alt="Bluassist" className="chat-logo" />
+                    <span className="chat-title">Bluassist Chat</span>
+                  </div>
                   <div className="chat-dots">
                     <span></span>
                     <span></span>
                     <span></span>
                   </div>
-                  <span className="chat-title">Bluassist Chat</span>
                 </div>
                 <div className="chat-messages">
                   <div className="message bot-message">
@@ -459,7 +458,7 @@ function LandingPage({ onLoginClick, onRegisterClick, isAuthenticated, user, log
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <img src="/logo.png" alt="Bluassist" className="footer-logo-img" />
+                <img src="/blusalt-icon.svg" alt="Bluassist" className="footer-logo-img" />
                 <span>Bluassist</span>
               </div>
               <p className="footer-description">
