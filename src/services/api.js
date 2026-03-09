@@ -1,7 +1,7 @@
 // API Service for backend communication
 // In development, Vite proxy handles /api requests
 // In production, use VITE_API_URL environment variable
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://bluassistfrtken.onrender.com/api');
 
 class ApiService {
   constructor() {
