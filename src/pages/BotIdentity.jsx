@@ -14,9 +14,6 @@ const BotIdentity = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  const [activeNav, setActiveNav] = useState('webchat');
-  const [expandedNav, setExpandedNav] = useState({ webchat: true });
-
   const [form, setForm] = useState({
     voiceTone: '',
     voiceEmojis: false,
@@ -330,31 +327,11 @@ const BotIdentity = () => {
     setSaved(false);
   };
 
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({ ...prev, [navItem]: !prev[navItem] }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'overview') {
-      navigate('/dashboard');
-    } else if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else if (navItem === 'api-docs') {
-      navigate('/api-docs');
-    } else {
-      setActiveNav(navItem);
-    }
-  };
-
   if (!user) return null;
 
   return (
     <div className="bot-identity-layout">
       <Sidebar
-        activeNav={activeNav}
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
         tenant={tenant}
       />
       <main className="bot-identity-main">

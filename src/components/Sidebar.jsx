@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -15,7 +15,6 @@ const OverviewIcon = () => (
   </svg>
 );
 
-
 const KnowledgeIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -23,13 +22,11 @@ const KnowledgeIcon = () => (
   </svg>
 );
 
-
 const WebchatIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
   </svg>
 );
-
 
 const SettingsIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -68,9 +65,66 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
+// Derive the active nav section from the current URL
+function getActiveNavFromPath(pathname) {
+  if (pathname.startsWith('/knowledge')) return 'knowledge';
+  if (pathname.startsWith('/webchat')) return 'webchat';
+  if (pathname.startsWith('/api-docs')) return 'api-docs';
+  if (pathname.startsWith('/settings')) return 'settings';
+  return 'overview';
+}
+
+const navItems = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    icon: <OverviewIcon />,
+    path: '/dashboard'
+  },
+  {
+    id: 'knowledge',
+    label: 'Knowledge',
+    icon: <KnowledgeIcon />,
+    path: '/knowledge',
+    subItems: [
+      { label: 'Knowledge Bases', path: '/knowledge' }
+    ]
+  },
+  {
+    id: 'webchat',
+    label: 'Webchat',
+    icon: <WebchatIcon />,
+    subItems: [
+      { label: 'Bot Identity', path: '/webchat/bot-identity' },
+      { label: 'Bot Appearance', path: null },
+      { label: 'Deploy Settings', path: null },
+      { label: 'Features', path: null }
+    ]
+  },
+  {
+    id: 'api-docs',
+    label: 'API Docs',
+    icon: <ApiDocsIcon />,
+    path: '/api-docs'
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: <SettingsIcon />,
+    subItems: [
+      { label: 'API Key Management', path: '/settings/api-keys' },
+      { label: 'Subscription', path: '/settings/subscription' },
+      { label: 'Tenant Settings', path: '/settings/tenant' }
+    ]
+  }
+];
+
+function Sidebar({ tenant }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+
+  const activeNav = getActiveNavFromPath(location.pathname);
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -80,11 +134,21 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
     }
   });
 
+  // Auto-expand the section matching the current route
+  const [expandedNav, setExpandedNav] = useState(() => ({
+    [getActiveNavFromPath(window.location.pathname)]: true
+  }));
+
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(collapsed));
     } catch (e) {}
   }, [collapsed]);
+
+  // Keep expanded section in sync when navigating
+  useEffect(() => {
+    setExpandedNav(prev => ({ ...prev, [activeNav]: true }));
+  }, [activeNav]);
 
   const handleLogout = async () => {
     await logout();
@@ -96,71 +160,29 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
     setCollapsed(prev => !prev);
   };
 
-  const handleSubItemClick = (subItem) => {
-    if (subItem === 'Knowledge Bases') {
-      if (typeof setActiveNav === 'function') {
-        // If setActiveNav is a navigation handler (from Dashboard/Knowledge pages)
-        setActiveNav('knowledge');
+  const toggleNav = (itemId) => {
+    setExpandedNav(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+  };
+
+  const handleNavClick = (item) => {
+    if (item.subItems) {
+      if (collapsed) {
+        // Collapsed: navigate to first available subitem path
+        const first = item.subItems.find(s => s.path);
+        if (first) navigate(first.path);
       } else {
-        // Fallback: navigate directly if needed
-        navigate('/knowledge');
+        toggleNav(item.id);
       }
-    } else if (subItem === 'Bot Identity') {
-      navigate('/webchat/bot-identity');
-    } else if (subItem === 'API Key Management') {
-      navigate('/settings/api-keys');
-    } else if (subItem === 'Subscription') {
-      navigate('/settings/subscription');
-    } else if (subItem === 'Tenant Settings') {
-      navigate('/settings/tenant');
+    } else if (item.path) {
+      navigate(item.path);
     }
   };
 
-  const handleNavClick = (itemId) => {
-    if (itemId === 'settings') {
-      // Don't navigate, just expand/collapse
-      if (toggleNav) {
-        toggleNav(itemId);
-      }
-    } else if (itemId === 'knowledge') {
-      navigate('/knowledge');
-    } else if (itemId === 'api-docs') {
-      navigate('/api-docs');
-    } else if (setActiveNav) {
-      setActiveNav(itemId);
+  const handleSubItemClick = (subItem) => {
+    if (subItem.path) {
+      navigate(subItem.path);
     }
   };
-
-  const navItems = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      icon: <OverviewIcon />
-    },
-    {
-      id: 'knowledge',
-      label: 'Knowledge',
-      icon: <KnowledgeIcon />,
-      subItems: ['Tables', 'Knowledge Bases']
-    },
-    {
-      id: 'webchat',
-      label: 'Webchat',
-      icon: <WebchatIcon />,
-      subItems: ['Bot Identity', 'Bot Appearance', 'Deploy Settings', 'Features']
-    },
-    {
-      id: 'api-docs',
-      label: 'API Docs',
-      icon: <ApiDocsIcon />
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: <SettingsIcon />,
-      subItems: ['API Key Management', 'Subscription', 'Tenant Settings']
-    }
-  ];
 
   return (
     <div className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} title={collapsed ? 'Expand sidebar' : undefined}>
@@ -183,21 +205,7 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
           <div key={item.id} className="nav-item-wrapper">
             <div
               className={`nav-item ${activeNav === item.id ? 'active' : ''}`}
-              onClick={() => {
-                if (item.subItems && !collapsed) {
-                  toggleNav(item.id);
-                } else if (!item.subItems) {
-                  handleNavClick(item.id);
-                } else if (collapsed) {
-                  if (item.id === 'overview') navigate('/dashboard');
-                  else if (item.id === 'knowledge') navigate('/knowledge');
-                  else if (item.id === 'webchat') navigate('/dashboard');
-                  else if (item.id === 'api-docs') navigate('/api-docs');
-                  else if (item.id === 'settings') navigate('/settings');
-                } else if (!item.subItems) {
-                  handleNavClick(item.id);
-                }
-              }}
+              onClick={() => handleNavClick(item)}
               title={collapsed ? item.label : undefined}
             >
               <span className="nav-icon">{item.icon}</span>
@@ -217,12 +225,12 @@ function Sidebar({ activeNav, setActiveNav, expandedNav, toggleNav, tenant }) {
             {!collapsed && item.subItems && expandedNav[item.id] && (
               <div className="nav-subitems">
                 {item.subItems.map(subItem => (
-                  <div 
-                    key={subItem} 
-                    className="nav-subitem"
+                  <div
+                    key={subItem.label}
+                    className={`nav-subitem ${subItem.path && location.pathname === subItem.path ? 'active' : ''} ${!subItem.path ? 'nav-subitem--disabled' : ''}`}
                     onClick={() => handleSubItemClick(subItem)}
                   >
-                    {subItem}
+                    {subItem.label}
                   </div>
                 ))}
               </div>

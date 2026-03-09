@@ -17,9 +17,6 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('overview');
-  const [expandedNav, setExpandedNav] = useState({});
-
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -64,21 +61,6 @@ const Dashboard = () => {
     }
   };
 
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else {
-      setActiveNav(navItem);
-    }
-  };
-
   if (!user) {
     return null;
   }
@@ -102,11 +84,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">

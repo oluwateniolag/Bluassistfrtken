@@ -12,9 +12,6 @@ const ApiDocs = () => {
   const { user } = useAuth();
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('api-docs');
-  const [expandedNav, setExpandedNav] = useState({});
-
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -41,27 +38,6 @@ const ApiDocs = () => {
     }
   };
 
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else if (navItem === 'api-docs') {
-      setActiveNav('api-docs');
-    } else if (navItem === 'overview') {
-      navigate('/dashboard');
-    } else if (navItem === 'settings') {
-      navigate('/settings');
-    } else {
-      setActiveNav(navItem);
-    }
-  };
-
   if (!user) {
     return null;
   }
@@ -69,11 +45,7 @@ const ApiDocs = () => {
   if (loading) {
     return (
       <div className="dashboard">
-        <Sidebar 
-          activeNav={activeNav} 
-          setActiveNav={handleNavClick}
-          expandedNav={expandedNav}
-          toggleNav={toggleNav}
+        <Sidebar
           tenant={tenant}
         />
         <div className="dashboard-main">
@@ -89,11 +61,7 @@ const ApiDocs = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">

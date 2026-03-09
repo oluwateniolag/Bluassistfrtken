@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import Sidebar from '../components/Sidebar';
@@ -11,12 +11,9 @@ import './Settings.css';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tenant, setTenant] = useState(null);
-  const [activeNav, setActiveNav] = useState('settings');
-  const [expandedNav, setExpandedNav] = useState({ settings: true });
 
   useEffect(() => {
     if (!user) {
@@ -24,12 +21,7 @@ const Settings = () => {
       return;
     }
     fetchTenantData();
-    
-    // Set expanded state based on current route
-    if (location.pathname.startsWith('/settings')) {
-      setExpandedNav({ settings: true });
-    }
-  }, [user, navigate, location]);
+  }, [user, navigate]);
 
   useEffect(() => {
     // Set light theme for settings page
@@ -59,21 +51,6 @@ const Settings = () => {
     }
   };
 
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else {
-      setActiveNav(navItem);
-    }
-  };
-
   if (!user) {
     return null;
   }
@@ -89,11 +66,7 @@ const Settings = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">

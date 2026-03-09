@@ -17,9 +17,6 @@ const KnowledgeView = () => {
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeNav, setActiveNav] = useState('knowledge');
-  const [expandedNav, setExpandedNav] = useState({});
-
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -37,23 +34,6 @@ const KnowledgeView = () => {
       }
     } catch (error) {
       console.error('Failed to fetch tenant data:', error);
-    }
-  };
-
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'overview') {
-      navigate('/dashboard');
-    } else if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else {
-      setActiveNav(navItem);
     }
   };
 
@@ -78,11 +58,7 @@ const KnowledgeView = () => {
   if (loading) {
     return (
       <div className="dashboard">
-        <Sidebar 
-          activeNav={activeNav} 
-          setActiveNav={handleNavClick}
-          expandedNav={expandedNav}
-          toggleNav={toggleNav}
+        <Sidebar
           tenant={tenant}
         />
         <div className="dashboard-main">
@@ -97,11 +73,7 @@ const KnowledgeView = () => {
   if (error || !page) {
     return (
       <div className="dashboard">
-        <Sidebar 
-          activeNav={activeNav} 
-          setActiveNav={handleNavClick}
-          expandedNav={expandedNav}
-          toggleNav={toggleNav}
+        <Sidebar
           tenant={tenant}
         />
         <div className="dashboard-main">
@@ -120,13 +92,141 @@ const KnowledgeView = () => {
 
   const content = page.content || {};
 
+  const handleDownloadDoc = () => {
+    const platformName = content.platformName || 'Knowledge Base';
+    const companyName = tenant?.name || '';
+    const year = new Date().getFullYear();
+
+    // Build modules HTML
+    const modulesHtml = (content.modules && content.modules.length > 0)
+      ? content.modules.map((mod, idx) => `
+          <h4 style="font-size:13pt;color:#071B2B;margin:12pt 0 6pt;">2.1.${idx + 1}  ${mod.name || '[ Module Name ]'}</h4>
+          ${mod.features && mod.features.length > 0
+            ? `<ul>${mod.features.map(f => `<li style="margin-bottom:4pt;">${f}</li>`).join('')}</ul>`
+            : ''}
+        `).join('')
+      : '<p style="color:#888;">[ No modules added ]</p>';
+
+    // Build API calls HTML
+    const apiCallsHtml = (content.apiCalls && content.apiCalls.length > 0)
+      ? content.apiCalls.map((call, idx) => `
+          <h3 style="font-size:12pt;color:#071B2B;margin:14pt 0 6pt;">3.${idx + 1} ${call.name || `API Call ${idx + 1}`}</h3>
+          ${call.request ? `<p style="font-size:9pt;font-weight:bold;color:#509FEF;margin:6pt 0 2pt;">Example Request</p>
+          <pre style="background:#f3f4f6;padding:10pt;border-radius:4pt;font-family:Courier New,monospace;font-size:9pt;white-space:pre-wrap;word-break:break-all;">${call.request.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>` : ''}
+          ${call.response ? `<p style="font-size:9pt;font-weight:bold;color:#509FEF;margin:6pt 0 2pt;">Example Response</p>
+          <pre style="background:#f3f4f6;padding:10pt;border-radius:4pt;font-family:Courier New,monospace;font-size:9pt;white-space:pre-wrap;word-break:break-all;">${call.response.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>` : ''}
+        `).join('')
+      : content.apiRequestResponses
+        ? `<p>${content.apiRequestResponses.replace(/\n/g, '<br/>')}</p>`
+        : '<p style="color:#888;">[ No API documentation added ]</p>';
+
+    // Build status codes HTML
+    const statusCodesHtml = (content.httpStatusCodes && content.httpStatusCodes.length > 0)
+      ? `<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:10pt;">
+          <thead><tr style="background:#509FEF;color:white;">
+            <th style="padding:8pt;text-align:left;">HTTP Status</th>
+            <th style="padding:8pt;text-align:left;">Meaning</th>
+          </tr></thead>
+          <tbody>
+            ${content.httpStatusCodes.map(c => `<tr><td style="padding:6pt;"><b>${c.status || ''}</b></td><td style="padding:6pt;">${c.meaning || ''}</td></tr>`).join('')}
+          </tbody>
+        </table>`
+      : '<p style="color:#888;">[ No status codes added ]</p>';
+
+    // Build page locations HTML
+    const pageLocationsHtml = (content.pageLocations && content.pageLocations.length > 0)
+      ? `<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%;font-size:10pt;">
+          <thead><tr style="background:#509FEF;color:white;">
+            <th style="padding:8pt;text-align:left;">Page Name</th>
+            <th style="padding:8pt;text-align:left;">Link / URL</th>
+          </tr></thead>
+          <tbody>
+            ${content.pageLocations.map(p => `<tr><td style="padding:6pt;"><b>${p.name || ''}</b></td><td style="padding:6pt;">${p.link || ''}</td></tr>`).join('')}
+          </tbody>
+        </table>`
+      : '<p style="color:#888;">[ No page locations added ]</p>';
+
+    // Build FAQ HTML
+    const faqHtml = (content.faqCategories && content.faqCategories.length > 0)
+      ? content.faqCategories.map(cat => `
+          <h3 style="font-size:12pt;color:#071B2B;margin:14pt 0 6pt;">${cat.category || ''}</h3>
+          ${(cat.questions || []).map(q => `
+            <p style="margin:8pt 0 2pt;"><b>Q: ${q.question || ''}</b></p>
+            <p style="margin:2pt 0 8pt;color:#444;">${q.answer || ''}</p>
+          `).join('')}
+        `).join('')
+      : '<p style="color:#888;">[ No FAQ entries added ]</p>';
+
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office'
+            xmlns:w='urn:schemas-microsoft-com:office:word'
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>${platformName} Knowledge Base</title>
+        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #222; margin: 72pt; }
+          h1 { font-size: 22pt; color: #071B2B; margin-bottom: 4pt; }
+          h2 { font-size: 15pt; color: #509FEF; border-bottom: 2pt solid #509FEF; padding-bottom: 4pt; margin-top: 24pt; }
+          h3 { font-size: 12pt; color: #071B2B; margin-top: 14pt; }
+          p { line-height: 1.6; margin: 6pt 0; }
+          ul { margin: 6pt 0 6pt 20pt; }
+          li { margin-bottom: 3pt; }
+          .label { font-size: 9pt; color: #509FEF; letter-spacing: 1pt; text-transform: uppercase; margin-bottom: 4pt; }
+          .divider { border: none; border-top: 2pt solid #509FEF; margin: 12pt 0 24pt; }
+          .footer { margin-top: 40pt; text-align: center; color: #888; font-size: 9pt; border-top: 1pt solid #ddd; padding-top: 8pt; }
+        </style>
+      </head>
+      <body>
+        <p class="label">KNOWLEDGE BASE</p>
+        <h1>${platformName}</h1>
+        <hr class="divider" />
+
+        <h2>1. Platform Overview</h2>
+        <h3>1.1 Introduction</h3>
+        <p>${content.introduction || '[ No introduction added ]'}</p>
+
+        <h2>2. Core Functionality &amp; System Capabilities</h2>
+        <h3>2.1 Module Overview</h3>
+        <p>${content.moduleOverview || '[ No module overview added ]'}</p>
+        ${modulesHtml}
+
+        <h2>3. API Documentation</h2>
+        ${apiCallsHtml}
+
+        <h2>4. Error Codes &amp; Status Responses</h2>
+        <h3>4.1 HTTP Status Code Reference</h3>
+        ${statusCodesHtml}
+
+        <h2>5. Page Locations</h2>
+        ${pageLocationsHtml}
+
+        <h2>6. Frequently Asked Questions (FAQ)</h2>
+        ${faqHtml}
+
+        <div class="footer">
+          <p>${platformName} Platform Knowledge Base &nbsp;|&nbsp; Technical Documentation</p>
+          <p>&copy; ${year} ${companyName}. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${platformName.replace(/\s+/g, '_')}_Knowledge_Base.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">
@@ -138,12 +238,20 @@ const KnowledgeView = () => {
             >
               ← Back
             </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => navigate(`/knowledge/edit/${page.id}`)}
-            >
-              Edit
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleDownloadDoc}
+              >
+                ↓ Download Doc
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate(`/knowledge/edit/${page.id}`)}
+              >
+                Edit
+              </button>
+            </div>
           </div>
 
           <div className="knowledge-view-content">
@@ -206,14 +314,34 @@ const KnowledgeView = () => {
             {/* 3. API Documentation */}
             <section className="kb-section">
               <h2 className="kb-section-title">3. API Documentation</h2>
-              
-              <h3 className="kb-subsection-title">3.1 REQUEST And Responses</h3>
-              
-              <div className="kb-content">
-                {content.apiRequestResponses || (
-                  <p className="kb-placeholder">[ Document API request and response formats ]</p>
-                )}
-              </div>
+
+              {(content.apiCalls && content.apiCalls.length > 0) ? (
+                <div className="kb-api-calls">
+                  {content.apiCalls.map((call, idx) => (
+                    <div key={idx} className="kb-api-call">
+                      <h3 className="kb-subsection-title">3.{idx + 1} {call.name || `[ API Call ${idx + 1} ]`}</h3>
+                      {call.request && (
+                        <div className="kb-api-block">
+                          <div className="kb-api-block-label">Example Request</div>
+                          <pre className="kb-code-block">{call.request}</pre>
+                        </div>
+                      )}
+                      {call.response && (
+                        <div className="kb-api-block">
+                          <div className="kb-api-block-label">Example Response</div>
+                          <pre className="kb-code-block">{call.response}</pre>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : content.apiRequestResponses ? (
+                <div className="kb-content">{content.apiRequestResponses}</div>
+              ) : (
+                <div className="kb-content">
+                  <p className="kb-placeholder">[ No API calls documented ]</p>
+                </div>
+              )}
             </section>
 
             {/* 4. Error Codes & Status Responses */}
@@ -246,9 +374,37 @@ const KnowledgeView = () => {
               )}
             </section>
 
-            {/* 5. Frequently Asked Questions */}
+            {/* 5. Page Locations */}
             <section className="kb-section">
-              <h2 className="kb-section-title">5. Frequently Asked Questions (FAQ)</h2>
+              <h2 className="kb-section-title">5. Page Locations</h2>
+
+              {(content.pageLocations && content.pageLocations.length > 0) ? (
+                <table className="kb-status-table">
+                  <thead>
+                    <tr>
+                      <th>Page Name</th>
+                      <th>Link / URL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {content.pageLocations.map((loc, idx) => (
+                      <tr key={idx}>
+                        <td><strong>{loc.name || '[ Page Name ]'}</strong></td>
+                        <td>{loc.link || '[ URL ]'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="kb-content">
+                  <p className="kb-placeholder">[ Add page names and their links ]</p>
+                </div>
+              )}
+            </section>
+
+            {/* 6. Frequently Asked Questions */}
+            <section className="kb-section">
+              <h2 className="kb-section-title">6. Frequently Asked Questions (FAQ)</h2>
               
               {(content.faqCategories && content.faqCategories.length > 0) ? (
                 <div className="kb-faq">

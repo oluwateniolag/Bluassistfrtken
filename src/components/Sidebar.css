@@ -167,6 +167,22 @@
   color: #1a1a1a;
 }
 
+.nav-subitem.active {
+  background-color: #eff6ff;
+  color: #509fef;
+  font-weight: 600;
+}
+
+.nav-subitem--disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.nav-subitem--disabled:hover {
+  background-color: transparent;
+  color: #6b7280;
+}
+
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid #e5e7eb;

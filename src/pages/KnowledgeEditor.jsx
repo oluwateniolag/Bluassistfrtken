@@ -29,19 +29,20 @@ const KnowledgeEditor = () => {
       introduction: '',
       moduleOverview: '',
       modules: [],
-      apiRequestResponses: '',
+      apiCalls: [],
       httpStatusCodes: [],
-      faqCategories: []
+      faqCategories: [],
+      pageLocations: []
     },
     status: 'draft',
     metaDescription: '',
     metaKeywords: []
   });
   const [tagInput, setTagInput] = useState('');
-  const [activeNav, setActiveNav] = useState('knowledge');
-  const [expandedNav, setExpandedNav] = useState({});
-
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
   const isEditMode = !!id;
+  const isImport = searchParams.get('import') === '1';
 
   useEffect(() => {
     if (!user) {
@@ -77,23 +78,6 @@ const KnowledgeEditor = () => {
     }
   };
 
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'overview') {
-      navigate('/dashboard');
-    } else if (navItem === 'knowledge') {
-      navigate('/knowledge');
-    } else {
-      setActiveNav(navItem);
-    }
-  };
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -106,6 +90,19 @@ const KnowledgeEditor = () => {
           // Page already exists, redirect to edit
           navigate(`/knowledge/edit/${pagesRes.data.page.id}`);
           return;
+        }
+      }
+
+      // Load imported text from file upload (via sessionStorage)
+      if (isImport) {
+        const importedText = sessionStorage.getItem('kb_import_text');
+        if (importedText) {
+          sessionStorage.removeItem('kb_import_text');
+          setFormData(prev => ({
+            ...prev,
+            content: { ...prev.content, introduction: importedText }
+          }));
+          setUploadMessage({ type: 'success', text: 'File content imported into the Introduction field. Please organize the content into the relevant sections below.' });
         }
       }
 
@@ -127,18 +124,25 @@ const KnowledgeEditor = () => {
         const pageRes = await api.getKnowledgePage(id);
         if (pageRes.success) {
           const page = pageRes.data.page;
+          const c = page.content || {};
+          // Migrate old apiRequestResponses string to new apiCalls array
+          let apiCalls = c.apiCalls || [];
+          if (!apiCalls.length && c.apiRequestResponses) {
+            apiCalls = [{ name: 'API Documentation', request: c.apiRequestResponses, response: '' }];
+          }
           setFormData({
             title: page.title || '',
             category: page.category || '',
             tags: page.tags || [],
-            content: page.content || {
-              platformName: '',
-              introduction: '',
-              moduleOverview: '',
-              modules: [],
-              apiRequestResponses: '',
-              httpStatusCodes: [],
-              faqCategories: []
+            content: {
+              platformName: c.platformName || '',
+              introduction: c.introduction || '',
+              moduleOverview: c.moduleOverview || '',
+              modules: c.modules || [],
+              apiCalls,
+              httpStatusCodes: c.httpStatusCodes || [],
+              faqCategories: c.faqCategories || [],
+              pageLocations: c.pageLocations || []
             },
             status: page.status || 'draft',
             metaDescription: page.metaDescription || '',
@@ -221,6 +225,25 @@ const KnowledgeEditor = () => {
     handleContentChange('modules', modules);
   };
 
+  // API Calls management
+  const handleAddApiCall = () => {
+    const calls = [...(formData.content.apiCalls || [])];
+    calls.push({ name: '', request: '', response: '' });
+    handleContentChange('apiCalls', calls);
+  };
+
+  const handleUpdateApiCall = (index, field, value) => {
+    const calls = [...(formData.content.apiCalls || [])];
+    calls[index][field] = value;
+    handleContentChange('apiCalls', calls);
+  };
+
+  const handleRemoveApiCall = (index) => {
+    const calls = [...(formData.content.apiCalls || [])];
+    calls.splice(index, 1);
+    handleContentChange('apiCalls', calls);
+  };
+
   // HTTP Status Codes management
   const handleAddStatusCode = () => {
     const codes = [...(formData.content.httpStatusCodes || [])];
@@ -280,6 +303,46 @@ const KnowledgeEditor = () => {
     handleContentChange('faqCategories', categories);
   };
 
+  // Page Locations management
+  const handleAddPageLocation = () => {
+    const locations = [...(formData.content.pageLocations || [])];
+    locations.push({ name: '', link: '' });
+    handleContentChange('pageLocations', locations);
+  };
+
+  const handleUpdatePageLocation = (index, field, value) => {
+    const locations = [...(formData.content.pageLocations || [])];
+    locations[index][field] = value;
+    handleContentChange('pageLocations', locations);
+  };
+
+  const handleRemovePageLocation = (index) => {
+    const locations = [...(formData.content.pageLocations || [])];
+    locations.splice(index, 1);
+    handleContentChange('pageLocations', locations);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    setUploadMessage(null);
+    try {
+      const res = await api.parseKnowledgeFile(file);
+      if (res.success && res.data?.text) {
+        handleContentChange('introduction',
+          (formData.content.introduction ? formData.content.introduction + '\n\n' : '') + res.data.text
+        );
+        setUploadMessage({ type: 'success', text: `"${file.name}" imported into the Introduction field. Organize the content into the relevant sections below.` });
+      }
+    } catch (err) {
+      setUploadMessage({ type: 'error', text: err.message || 'Failed to parse file' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async (status) => {
     try {
       setSaving(true);
@@ -320,11 +383,7 @@ const KnowledgeEditor = () => {
   if (loading) {
     return (
       <div className="dashboard">
-        <Sidebar 
-          activeNav={activeNav} 
-          setActiveNav={handleNavClick}
-          expandedNav={expandedNav}
-          toggleNav={toggleNav}
+        <Sidebar
           tenant={tenant}
         />
         <div className="dashboard-main">
@@ -338,11 +397,7 @@ const KnowledgeEditor = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">
@@ -350,6 +405,20 @@ const KnowledgeEditor = () => {
           <div className="knowledge-editor-header">
             <h1>{isEditMode ? 'Edit Knowledge Page' : 'Create Knowledge Page'}</h1>
             <div className="knowledge-editor-actions">
+              <label
+                className="btn btn-secondary"
+                style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.7 : 1 }}
+                title="Upload a PDF or Word document to import its content"
+              >
+                {uploading ? 'Parsing...' : '↑ Upload File'}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                  disabled={uploading || saving}
+                />
+              </label>
               <button
                 className="btn btn-secondary"
                 onClick={() => navigate('/knowledge')}
@@ -377,6 +446,19 @@ const KnowledgeEditor = () => {
           {error && (
             <div className="knowledge-editor-error">
               {error}
+            </div>
+          )}
+
+          {uploadMessage && (
+            <div className={uploadMessage.type === 'success' ? 'knowledge-editor-success' : 'knowledge-editor-error'}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span>{uploadMessage.type === 'success' ? '✓' : '✗'}</span>
+              <span>{uploadMessage.text}</span>
+              <button
+                type="button"
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+                onClick={() => setUploadMessage(null)}
+              >×</button>
             </div>
           )}
 
@@ -556,15 +638,52 @@ const KnowledgeEditor = () => {
             {/* 3. API Documentation */}
             <div className="form-section">
               <h2>3. API Documentation</h2>
-              
+
               <div className="form-group">
-                <label>Request and Responses</label>
-                <textarea
-                  value={formData.content.apiRequestResponses || ''}
-                  onChange={(e) => handleContentChange('apiRequestResponses', e.target.value)}
-                  placeholder="Document API request and response formats..."
-                  rows={6}
-                />
+                <label>API Calls</label>
+                {(formData.content.apiCalls || []).map((call, idx) => (
+                  <div key={idx} className="api-call-item">
+                    <div className="api-call-header">
+                      <input
+                        type="text"
+                        value={call.name || ''}
+                        onChange={(e) => handleUpdateApiCall(idx, 'name', e.target.value)}
+                        placeholder={`API Call ${idx + 1} Name (e.g., Create User, Get Transaction)`}
+                        className="api-call-name-input"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleRemoveApiCall(idx)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <label className="api-call-sub-label">Example Request</label>
+                    <textarea
+                      value={call.request || ''}
+                      onChange={(e) => handleUpdateApiCall(idx, 'request', e.target.value)}
+                      placeholder={`POST /api/users\nContent-Type: application/json\n\n{\n  "name": "John Doe",\n  "email": "john@example.com"\n}`}
+                      rows={5}
+                      className="api-call-code"
+                    />
+                    <label className="api-call-sub-label">Example Response</label>
+                    <textarea
+                      value={call.response || ''}
+                      onChange={(e) => handleUpdateApiCall(idx, 'response', e.target.value)}
+                      placeholder={`{\n  "success": true,\n  "data": {\n    "id": "abc123",\n    "name": "John Doe"\n  }\n}`}
+                      rows={5}
+                      className="api-call-code"
+                    />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={handleAddApiCall}
+                >
+                  Add API Call
+                </button>
               </div>
             </div>
 
@@ -670,6 +789,45 @@ const KnowledgeEditor = () => {
               >
                 Add FAQ Category
               </button>
+            </div>
+
+            {/* 6. Page Locations */}
+            <div className="form-section">
+              <h2>6. Page Locations</h2>
+
+              <div className="form-group">
+                <label>Pages</label>
+                {(formData.content.pageLocations || []).map((loc, idx) => (
+                  <div key={idx} className="status-code-item">
+                    <input
+                      type="text"
+                      value={loc.name || ''}
+                      onChange={(e) => handleUpdatePageLocation(idx, 'name', e.target.value)}
+                      placeholder="Page Name (e.g., Dashboard, User Profile)"
+                    />
+                    <input
+                      type="text"
+                      value={loc.link || ''}
+                      onChange={(e) => handleUpdatePageLocation(idx, 'link', e.target.value)}
+                      placeholder="Link / URL (e.g., /dashboard, https://app.example.com/profile)"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleRemovePageLocation(idx)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={handleAddPageLocation}
+                >
+                  Add Page Location
+                </button>
+              </div>
             </div>
 
             {/* SEO Metadata */}

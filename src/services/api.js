@@ -205,6 +205,23 @@ class ApiService {
     return this.request('/knowledge/categories');
   }
 
+  async parseKnowledgeFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const url = `${this.baseURL}/knowledge/parse-file`;
+    const token = this.getToken();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to parse file');
+    }
+    return data;
+  }
+
   // API Key Management endpoints
   async getApiKeys() {
     return this.request('/tenants/api-keys');

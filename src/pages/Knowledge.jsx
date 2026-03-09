@@ -18,9 +18,7 @@ const Knowledge = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeNav, setActiveNav] = useState('knowledge');
-  const [expandedNav, setExpandedNav] = useState({});
-
+  const [uploadingFile, setUploadingFile] = useState(false);
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -38,21 +36,6 @@ const Knowledge = () => {
       }
     } catch (error) {
       console.error('Failed to fetch tenant data:', error);
-    }
-  };
-
-  const toggleNav = (navItem) => {
-    setExpandedNav(prev => ({
-      ...prev,
-      [navItem]: !prev[navItem]
-    }));
-  };
-
-  const handleNavClick = (navItem) => {
-    if (navItem === 'overview') {
-      navigate('/dashboard');
-    } else {
-      setActiveNav(navItem);
     }
   };
 
@@ -100,6 +83,25 @@ const Knowledge = () => {
     }
   };
 
+  const handleUploadFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadingFile(true);
+    try {
+      const res = await api.parseKnowledgeFile(file);
+      if (res.success && res.data?.text) {
+        // Navigate to create page with extracted text stored in sessionStorage
+        sessionStorage.setItem('kb_import_text', res.data.text);
+        navigate('/knowledge/create?import=1');
+      }
+    } catch (err) {
+      console.error('Upload failed:', err.message);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleViewPage = () => {
     if (page) {
       navigate(`/knowledge/view/${page.id}`);
@@ -120,11 +122,7 @@ const Knowledge = () => {
   if (loading) {
     return (
       <div className="dashboard">
-        <Sidebar 
-          activeNav={activeNav} 
-          setActiveNav={handleNavClick}
-          expandedNav={expandedNav}
-          toggleNav={toggleNav}
+        <Sidebar
           tenant={tenant}
         />
         <div className="dashboard-main">
@@ -138,11 +136,7 @@ const Knowledge = () => {
 
   return (
     <div className="dashboard">
-      <Sidebar 
-        activeNav={activeNav} 
-        setActiveNav={handleNavClick}
-        expandedNav={expandedNav}
-        toggleNav={toggleNav}
+      <Sidebar
         tenant={tenant}
       />
       <div className="dashboard-main">
@@ -175,7 +169,7 @@ const Knowledge = () => {
                 onClick={handleEditPage}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
                 Edit Page
@@ -183,6 +177,25 @@ const Knowledge = () => {
             </>
           ) : (
             <>
+              <label
+                className="knowledge-btn knowledge-btn-secondary"
+                style={{ cursor: uploadingFile ? 'not-allowed' : 'pointer', opacity: uploadingFile ? 0.7 : 1 }}
+                title="Import content from a PDF or Word document"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                {uploadingFile ? 'Parsing...' : 'Upload File'}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  style={{ display: 'none' }}
+                  onChange={handleUploadFile}
+                  disabled={uploadingFile}
+                />
+              </label>
               <button
                 className="knowledge-btn knowledge-btn-secondary"
                 onClick={() => setShowCreateModal(true)}
