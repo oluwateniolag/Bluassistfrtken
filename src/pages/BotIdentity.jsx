@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import Sidebar from '../components/Sidebar';
 import '../components/Sidebar.css';
+import '../components/Dashboard.css';
 import './BotIdentity.css';
 
 const BotIdentity = () => {
@@ -330,11 +331,11 @@ const BotIdentity = () => {
   if (!user) return null;
 
   return (
-    <div className="bot-identity-layout">
+    <div className="dashboard">
       <Sidebar
         tenant={tenant}
       />
-      <main className="bot-identity-main">
+      <main className="dashboard-main bot-identity-main">
         <div className="bot-identity-container">
           <div className="bot-identity-header">
             <h1 className="bot-identity-title">Bot Identity</h1>
